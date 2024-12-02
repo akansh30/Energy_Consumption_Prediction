@@ -14,15 +14,14 @@ class EnergyConsumptionApp:
         self.load_resources()
 
     def setup_page(self):
-        # Set a fixed background and text color
         st.markdown("""
         <style>
         .stApp {
-            background-color: #E8F5E9; /* Light Pastel Green Background */
-            color: #2E7D32; /* Dark Green Text */
+            background-color: #E3F2FD; /* Light Blue Background */
+            color: #0D47A1; /* Dark Blue Text */
         }
         .main-header {
-            background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);
+            background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);
             color: white;
             padding: 20px;
             text-align: center;
@@ -34,53 +33,79 @@ class EnergyConsumptionApp:
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            color: #2E7D32; /* Dark Green Text inside prediction cards */
+            color: #0D47A1; /* Dark Blue Text inside prediction cards */
+        }
+        .stButton > button {
+            background-color: #1E88E5; /* Blue Button */
+            color: white;
+            border-radius: 12px;
+            padding: 10px 20px;
+            border: none;
+            font-size: 16px;
+        }
+        .stButton > button:hover {
+            background-color: #1565C0; /* Darker Blue on hover */
+        }
+        .blue-text {
+            color: #0D47A1; /* Dark Blue Text */
+            font-weight: bold;
+            font-size: 18px;
         }
         </style>
         """, unsafe_allow_html=True)
 
     def load_resources(self):
         try:
-            # Load models and feature names
             self.linear_model = joblib.load("pkl_folder/linear_model.pkl") 
             self.ridge_model = joblib.load("pkl_folder/ridge_model.pkl")
             self.feature_names = joblib.load("pkl_folder/feature_names.pkl")
-            st.success("Resources loaded successfully!")
         except Exception as e:
             st.error(f"Error loading resources: {e}")
 
     def run(self):
         st.markdown("<div class='main-header'><h1>⚡ Energy Consumption Prediction</h1></div>", unsafe_allow_html=True)
 
-        st.sidebar.markdown("## ⚙️ Feature Input")
+        # Organize features into two columns
+        st.markdown("<span class='blue-text'>⚙️ Enter Feature Values:</span>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
 
-        # Feature inputs for the model
-        voltage = st.sidebar.slider("Voltage (V)", 220.0, 255.0, 240.0)
-        global_intensity = st.sidebar.slider("Global Intensity (A)", 0.0, 20.0, 4.63)
-        sub_metering_1 = st.sidebar.slider("Sub Metering 1 (Wh)", 0.0, 50.0, 1.12)
-        sub_metering_2 = st.sidebar.slider("Sub Metering 2 (Wh)", 0.0, 50.0, 1.30)
-        sub_metering_3 = st.sidebar.slider("Sub Metering 3 (Wh)", 0.0, 50.0, 6.46)
+        with col1:
+            st.markdown('<span style="color: #0D47A1; font-weight: bold;">Voltage (V)</span>', unsafe_allow_html=True)
+            voltage = st.number_input("", min_value=220.0, max_value=255.0, value=240.0, step=0.1)
 
-        # DateTime inputs
-        date = st.sidebar.date_input("Select Date", value=pd.Timestamp("2024-11-28"))
-        time = st.sidebar.time_input("Select Time", value=pd.Timestamp("2024-11-28 12:00:00").time())
+            st.markdown('<span style="color: #0D47A1; font-weight: bold;">Global Intensity (A)</span>', unsafe_allow_html=True)
+            global_intensity = st.number_input("", min_value=0.0, max_value=20.0, value=4.63, step=0.1)
+
+            st.markdown('<span style="color: #0D47A1; font-weight: bold;">Sub Metering 1 (Wh)</span>', unsafe_allow_html=True)
+            sub_metering_1 = st.number_input("", min_value=0.0, max_value=50.0, value=1.12, step=0.1)
+
+        with col2:
+            st.markdown('<span style="color: #0D47A1; font-weight: bold;">Sub Metering 2 (Wh)</span>', unsafe_allow_html=True)
+            sub_metering_2 = st.number_input("", min_value=0.0, max_value=50.0, value=1.30, step=0.1)
+
+            st.markdown('<span style="color: #0D47A1; font-weight: bold;">Sub Metering 3 (Wh)</span>', unsafe_allow_html=True)
+            sub_metering_3 = st.number_input("", min_value=0.0, max_value=50.0, value=6.46, step=0.1)
+
+        st.markdown("---")
+
+        # Date and Time inputs
+        st.markdown("<span class='blue-text'>📅 Date and Time Inputs</span>", unsafe_allow_html=True)
+        st.markdown('<span style="color: #0D47A1; font-weight: bold;">Select Date</span>', unsafe_allow_html=True)
+        date = st.date_input("", value=pd.Timestamp("2024-11-28"))
+        
+        st.markdown('<span style="color: #0D47A1; font-weight: bold;">Select Time</span>', unsafe_allow_html=True)
+        time = st.time_input("", value=pd.Timestamp("2024-11-28 12:00:00").time())
 
         # Convert Date and Time to derived features
         date_time = pd.Timestamp.combine(date, time)
-        year = date_time.year
-        month = date_time.month
-        day = date_time.day
-        hour = date_time.hour
-        minute = date_time.minute
-
-        # Assume default values for additional features
+        year, month, day, hour, minute = date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute
         is_holiday = 0  # Default: Not a holiday
         light = 1       # Default: Daylight
-        weekday = date_time.weekday()  # Extract weekday (0=Monday, 6=Sunday)
+        weekday = date_time.weekday()
 
-        # Prepare input data with all features
+        # Prepare input data
         input_data = pd.DataFrame({
-            "Global_reactive_power": [0.0],  # Default or slider value
+            "Global_reactive_power": [0.0],
             "Voltage": [voltage],
             "Global_intensity": [global_intensity],
             "Sub_metering_1": [sub_metering_1],
@@ -94,43 +119,23 @@ class EnergyConsumptionApp:
             "Is_holiday": [is_holiday],
             "Light": [light],
             "Weekday": [weekday]
-        })[self.feature_names]  # Ensure correct feature order
+        })[self.feature_names]
 
-        # Predictions
-        try:
-            linear_pred = self.linear_model.predict(input_data)[0]
-            ridge_pred = self.ridge_model.predict(input_data)[0]
+        # Button for predictions
+        if st.button("🔮 Predict Energy Consumption"):
+            try:
+                linear_pred = self.linear_model.predict(input_data)[0]
+                ridge_pred = self.ridge_model.predict(input_data)[0]
 
-            # Display predictions
-            st.markdown('<div class="prediction-card">', unsafe_allow_html=True)
-            st.subheader("🔮 Predictions")
-            st.write(f"**Linear Regression Prediction:** {linear_pred:.2f} kW")
-            st.write(f"**Ridge Regression Prediction:** {ridge_pred:.2f} kW")
-            st.markdown('</div>', unsafe_allow_html=True)
+                # Display predictions
+                st.markdown('<div class="prediction-card">', unsafe_allow_html=True)
+                st.markdown('<span style="color: #1E88E5; font-size: 24px; font-weight: bold;">🔮 Predictions</span>', unsafe_allow_html=True)
+                st.write(f"**Linear Regression Prediction:** {linear_pred:.2f} kW")
+                st.write(f"**Ridge Regression Prediction:** {ridge_pred:.2f} kW")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        except ValueError as e:
-            st.error(f"Prediction error: {e}")
-
-        st.markdown("""
-<div style="
-    background-color: #FBE9E7; /* Light peach background */
-    color: #D84315; /* Dark orange text */
-    border: 2px solid #FFAB91; /* Lighter orange border */
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-">
-<h3>📜 Disclaimer</h3>
-<p><strong>Important Notice:</strong></p>
-<ul>
-<li>This tool provides energy consumption predictions based on historical data.</li>
-<li>It is intended for informational purposes only.</li>
-<li>For critical energy planning, consult a certified energy expert.</li>
-</ul>
-</div>
-""", unsafe_allow_html=True)
-
+            except ValueError as e:
+                st.error(f"Prediction error: {e}")
 
 
 # Main function to run the app
